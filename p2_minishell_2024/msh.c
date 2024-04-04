@@ -3,7 +3,7 @@
 //  MSH main file
 // Write your msh source code here
 
-//#include "parser.h"
+//#include "parser.h" ??
 #include <stddef.h>			/* NULL */
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -16,7 +16,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define MAX_COMMANDS 8
+#define MAX_COMMANDS 8 // the maximum number of commands
 
 
 // files in case of redirection
@@ -28,13 +28,24 @@ char *argv_execvp[8];
 void siginthandler(int param)
 {
 	printf("****  Exiting MSH **** \n");
-	//signal(SIGINT, siginthandler);
+	//signal(SIGINT, siginthandler); ??????
 	exit(0);
 }
 
 /* myhistory */
+// Check that the input "myhistory" is correctly spelled in the main
+int myhistory(***argvv, ){
+    // If executed without arguments, show standard output error a list of the last 20 commands <N> <command>
 
-/* myhistory */
+    // If exectued with an argument number between 0 and 19, print and run the command corresponding to the number
+
+    // If number doesn't exist or out of range, print "ERROR: Command not found"
+}
+
+/* mycalc */
+int mycalc(){
+
+}
 
 struct command
 {
@@ -135,24 +146,25 @@ void getCompleteCommand(char*** argvv, int num_command) {
 
 
 /**
- * Main sheell  Loop  
+ * Main shell  Loop
  */
 int main(int argc, char* argv[])
 {
 	/**** Do not delete this code.****/
 	int end = 0; 
 	int executed_cmd_lines = -1;
-	char *cmd_line = NULL;
-	char *cmd_lines[10];
+	char *cmd_line = NULL; // command line is default to no command
+	char *cmd_lines[10]; //
 
 	if (!isatty(STDIN_FILENO)) {
 		cmd_line = (char*)malloc(100);
-		while (scanf(" %[^\n]", cmd_line) != EOF){
-			if(strlen(cmd_line) <= 0) return 0;
-			cmd_lines[end] = (char*)malloc(strlen(cmd_line)+1);
+		while (scanf(" %[^\n]", cmd_line) != EOF){ // while not CTRL-C (EOF)
+			if(strlen(cmd_line) <= 0) // if no command is entered
+                return 0;
+			cmd_lines[end] = (char*)malloc(strlen(cmd_line)+1); //
 			strcpy(cmd_lines[end], cmd_line);
 			end++;
-			fflush (stdin);
+			fflush(stdin);
 			fflush(stdout);
 		}
 	}
@@ -200,11 +212,47 @@ int main(int argc, char* argv[])
 				printf("Error: Maximum number of commands is %d \n", MAX_COMMANDS);
 			}
 			else {
-				// Print command
-				print_command(argvv, filev, in_background);
+                int pid, status;
+                pid = fork();
+                switch(pid){
+                    case -1: // error in creating child
+                        perror("Error: cannot create child.\n");
+                        return -1;
+                    case 0: // child
+                        //READCOMMAND???
+                        getCompleteCommand(***argvv, num_commands);
+                        execvp(PATH,*argv_execvp)
+                        break;
+                    default: // parent
+                        if (wait(&status) == -1){
+                            perror("Error in the wait.")
+                        }
+                        ... // end of parent process
+
+                }
+                // Print command REMOVE BEFORE SUBMITTING
+				print_command(argvv, filev, in_background); //???? where should this go
 			}
 		}
 	}
 	
 	return 0;
 }
+
+/*NOTES: DELETE BEFORE SUBMITTING
+ * print_command(argvv, filev, in_background)
+ * for (int i = 0; i < num commands; i++){
+        for (int j = 0; argvv[i][j] != NULL; j++){
+            printf(‘‘%s\n’’, argvv[i][j]);
+        }
+    }
+    printf(‘‘Redir IN: %s\n’’, filev[0]);
+    printf(‘‘Redir OUT: %s\n’’, filev[1]);
+    printf(‘‘Redir ERR: %s\n’’, filev[2]);
+    if (in background == 0)
+    printf(‘‘No Bg\n’’); else
+    printf(‘‘Bg\n’’);
+ *
+ *
+ *
+ * */

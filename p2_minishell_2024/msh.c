@@ -34,7 +34,7 @@ void siginthandler(int param)
 
 /* myhistory */
 // Check that the input "myhistory" is correctly spelled in the main
-int myhistory(***argvv){
+int myhistory(argvv){
     // If executed without arguments, show standard output error a list of the last 20 commands <N> <command>
 
     // If exectued with an argument number between 0 and 19, print and run the command corresponding to the number
@@ -43,18 +43,18 @@ int myhistory(***argvv){
 }
 
 /* mycalc */
-int mycalc(char *argv[8]){
+int mycalc(char ***argvv){
 
-    if (argv[1] && argv[2] && argv[3]) {
-        if (strcmp(argv[2], "add") == 0) {
+    if (argvv[0][1] && argvv[0][2] && argvv[0][3]) {
+        if (strcmp(argvv[0][2], "add") == 0) {
 
             int arg1,arg2,ans;
-            arg1 = atoi(argv[1]);
-            arg2 = atoi(argv[2]);
+            arg1 = atoi(argvv[0][1]);
+            arg2 = atoi(argvv[0][2]);
             ans = arg1 + arg2;
 
             int accum;
-            char *acc = getenv("ACC");
+            char *acc = getenv("Acc");
             if (acc == NULL) {
                 accum = 0;
             }
@@ -64,12 +64,32 @@ int mycalc(char *argv[8]){
             accum = accum + ans;
             char buf[20];
             sprintf(buf,"%d",accum);
-            int AC = setenv("ACC",buf,1);
-            if (AC == -1) {
+            int accc = setenv("Acc",buf,1);
+            if (accc == -1) {
                 printf("Error setting an environment variable\n");
             }
-            fprintf(stderr, "[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("ACC"));
+            char answer[100];
+            snprintf(answer,100, "[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("Acc"));
 
+        }
+        else if (strcmp(argvv[0][2], "mul") == 0) {
+            int arg1,arg2,ans;
+            arg1 = atoi(argvv[0][1]);
+            arg2 = atoi(argvv[0][2]);
+            ans = arg1 * arg2;
+            char answer[100];
+            snprintf(answer,100,"[OK] %d %% %d = %d\n",arg1,arg2,ans);
+        }
+        else if (strcmp(argvv[0][2], "div") == 0) {
+            int arg1,arg2,ans;
+            arg1 = atoi(argvv[0][1]);
+            arg2 = atoi(argvv[0][2]);
+            ans = arg1 / arg2;
+            if (arg2 == 0){
+                printf("[ERROR] Denominator can't be 0");
+            }
+            char answer[100];
+            snprintf(answer,100,"[OK] %d %% %d = %d\n",arg1,arg2,ans);
         }
 
     }
@@ -245,7 +265,7 @@ int main(int argc, char* argv[])
             }
 
            if (strcmp(argv_execvp[0], "mycalc") == 0) {
-               mycalc(argv_execvp);
+               mycalc(argvv);
            }
 			else {
 
@@ -257,7 +277,7 @@ int main(int argc, char* argv[])
                         return -1;
                     case 0: // child
                         //READCOMMAND???
-                        getCompleteCommand(***argvv, num_commands);
+                        getCompleteCommand(argvv, num_commands);
                         execvp(PATH,*argv_execvp)
                         break;
                     default: // parent

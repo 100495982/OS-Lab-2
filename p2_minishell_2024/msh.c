@@ -43,14 +43,14 @@ int myhistory(argvv){
 }
 
 /* mycalc */
-int mycalc(char ***argvv){
+int mycalc(char *argvv[8]){
 
-    if (argvv[0][1] && argvv[0][2] && argvv[0][3]) {
-        if (strcmp(argvv[0][2], "add") == 0) {
+    if (argvv[1] && argvv[2] && argvv[3]) {
+        if (strcmp(argvv[2], "add") == 0) {
 
             int arg1,arg2,ans;
-            arg1 = atoi(argvv[0][1]);
-            arg2 = atoi(argvv[0][2]);
+            arg1 = atoi(argvv[1]);
+            arg2 = atoi(argvv[2]);
             ans = arg1 + arg2;
 
             int accum;
@@ -66,35 +66,34 @@ int mycalc(char ***argvv){
             sprintf(buf,"%d",accum);
             int accc = setenv("Acc",buf,1);
             if (accc == -1) {
-                printf("Error setting an environment variable\n");
+                printf("[ERROR]Error setting an environment variable\n");
             }
-            char answer[100];
-            snprintf(answer,100, "[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("Acc"));
+            printf("[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("Acc"));
 
         }
-        else if (strcmp(argvv[0][2], "mul") == 0) {
+        else if (strcmp(argvv[2], "mul") == 0) {
             int arg1,arg2,ans;
-            arg1 = atoi(argvv[0][1]);
-            arg2 = atoi(argvv[0][2]);
+            arg1 = atoi(argvv[1]);
+            arg2 = atoi(argvv[2]);
             ans = arg1 * arg2;
-            char answer[100];
-            snprintf(answer,100,"[OK] %d %% %d = %d\n",arg1,arg2,ans);
+            printf("[OK] %d %% %d = %d\n",arg1,arg2,ans);
         }
-        else if (strcmp(argvv[0][2], "div") == 0) {
+        else if (strcmp(argvv[2], "div") == 0) {
             int arg1,arg2,ans;
-            arg1 = atoi(argvv[0][1]);
-            arg2 = atoi(argvv[0][2]);
+            arg1 = atoi(argvv[1]);
+            arg2 = atoi(argvv[2]);
             ans = arg1 / arg2;
             if (arg2 == 0){
                 printf("[ERROR] Denominator can't be 0\n");
             }
-            char answer[100];
-            snprintf(answer,100,"[OK] %d %% %d = %d\n",arg1,arg2,ans);
+            printf("[OK] %d %% %d = %d\n",arg1,arg2,ans);
         }
-
+        else {printf("[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
+        }
     }
     else{
         printf("[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
+
     }
 }
 
@@ -268,7 +267,7 @@ int main(int argc, char* argv[])
             }
 
            if (strcmp(argv_execvp[0], "mycalc") == 0) {
-               mycalc(argvv);
+               mycalc(argv_execvp);
            }
 			else {
 

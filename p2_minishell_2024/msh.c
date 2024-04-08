@@ -34,7 +34,7 @@ void siginthandler(int param)
 
 /* myhistory */
 // Check that the input "myhistory" is correctly spelled in the main
-int myhistory(***argvv, ){
+int myhistory(***argvv){
     // If executed without arguments, show standard output error a list of the last 20 commands <N> <command>
 
     // If exectued with an argument number between 0 and 19, print and run the command corresponding to the number
@@ -43,8 +43,36 @@ int myhistory(***argvv, ){
 }
 
 /* mycalc */
-int mycalc(){
+int mycalc(char *argv[8]){
 
+    if (argv[1] && argv[2] && argv[3]) {
+        if (strcmp(argv[2], "add") == 0) {
+
+            int arg1,arg2,ans;
+            arg1 = atoi(argv[1]);
+            arg2 = atoi(argv[2]);
+            ans = arg1 + arg2;
+
+            int accum;
+            char *acc = getenv("ACC");
+            if (acc == NULL) {
+                accum = 0;
+            }
+            else {
+                accum = atoi(acc);
+            }
+            accum = accum + ans;
+            char buf[20];
+            sprintf(buf,"%d",accum);
+            int AC = setenv("ACC",buf,1);
+            if (AC == -1) {
+                printf("Error setting an environment variable\n");
+            }
+            fprintf(stderr, "[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("ACC"));
+
+        }
+
+    }
 }
 
 struct command
@@ -211,7 +239,16 @@ int main(int argc, char* argv[])
 			if (command_counter > MAX_COMMANDS){
 				printf("Error: Maximum number of commands is %d \n", MAX_COMMANDS);
 			}
+
+            for (int i = 0; i < command_counter; i++) {
+               getCompleteCommand(argvv, i);
+            }
+
+           if (strcmp(argv_execvp[0], "mycalc") == 0) {
+               mycalc(argv_execvp);
+           }
 			else {
+
                 int pid, status;
                 pid = fork();
                 switch(pid){

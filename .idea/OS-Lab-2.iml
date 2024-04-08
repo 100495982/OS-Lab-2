@@ -1,2 +1,2 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module classpath="CIDR" type="CPP_MODULE" version="4" />
+<module classpath="External" external.linked.project.id="OS-Lab-2" external.linked.project.path="$MODULE_DIR$/p2_minishell_2024" external.root.project.path="$MODULE_DIR$/p2_minishell_2024" external.system.id="Makefile" type="CPP_MODULE" version="4" />

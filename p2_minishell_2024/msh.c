@@ -86,12 +86,15 @@ int mycalc(char ***argvv){
             arg2 = atoi(argvv[0][2]);
             ans = arg1 / arg2;
             if (arg2 == 0){
-                printf("[ERROR] Denominator can't be 0");
+                printf("[ERROR] Denominator can't be 0\n");
             }
             char answer[100];
             snprintf(answer,100,"[OK] %d %% %d = %d\n",arg1,arg2,ans);
         }
 
+    }
+    else{
+        printf("[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
     }
 }
 

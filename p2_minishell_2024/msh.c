@@ -95,6 +95,7 @@ int mycalc(char *argvv[8]){
         printf("[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
 
     }
+    return 0;
 }
 
 struct command

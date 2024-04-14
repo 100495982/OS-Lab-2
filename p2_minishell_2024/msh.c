@@ -44,13 +44,13 @@ int myhistory(argvv){
 
 /* mycalc */
 int mycalc(char *argvv[8]){
-
+    char messg[90];
     if (argvv[1] && argvv[2] && argvv[3]) {
         if (strcmp(argvv[2], "add") == 0) {
 
             int arg1,arg2,ans;
             arg1 = atoi(argvv[1]);
-            arg2 = atoi(argvv[2]);
+            arg2 = atoi(argvv[3]);
             ans = arg1 + arg2;
 
             int accum;
@@ -66,37 +66,45 @@ int mycalc(char *argvv[8]){
             sprintf(buf,"%d",accum);
             int accc = setenv("Acc",buf,1);
             if (accc == -1) {
-                printf("[ERROR]Error setting an environment variable\n");
+                snprintf(messg,90,"[ERROR]Error setting an environment variable\n");
             }
-            printf("[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("Acc"));
+            snprintf(messg,90,"[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("Acc"));
 
         }
         else if (strcmp(argvv[2], "mul") == 0) {
             int arg1,arg2,ans;
             arg1 = atoi(argvv[1]);
-            arg2 = atoi(argvv[2]);
+            arg2 = atoi(argvv[3]);
             ans = arg1 * arg2;
-            printf("[OK] %d %% %d = %d\n",arg1,arg2,ans);
+            snprintf(messg,90,"[OK] %d %% %d = %d\n",arg1,arg2,ans);
         }
         else if (strcmp(argvv[2], "div") == 0) {
-            int arg1,arg2,ans;
+            int arg1,arg2;
             arg1 = atoi(argvv[1]);
-            arg2 = atoi(argvv[2]);
-            ans = arg1 / arg2;
+            arg2 = atoi(argvv[3]);
             if (arg2 == 0){
-                printf("[ERROR] Denominator can't be 0\n");
+                snprintf(messg,90,"[ERROR] Denominator can't be 0\n");
             }
-            printf("[OK] %d %% %d = %d\n",arg1,arg2,ans);
+            snprintf(messg,90,"[OK] %d / %d = %d; Remainder %d\n",arg1,arg2,arg1/arg2,arg1%arg2);
         }
-        else {printf("[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
+        else {char messg[90];
+            snprintf(messg,90,"[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
         }
     }
     else{
-        printf("[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
+        char messg[90];
+        snprintf(messg,90,"[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
 
     }
-    return 0;
+    if (messg[1] == 'O')
+    {write(STDERR_FILENO,messg,strlen(messg));
+    }
+    else{
+        write(STDOUT_FILENO,messg,strlen(messg));
+    }
+return 0;
 }
+
 
 struct command
 {
@@ -270,49 +278,9 @@ int main(int argc, char* argv[])
            if (strcmp(argv_execvp[0], "mycalc") == 0) {
                mycalc(argv_execvp);
            }
-			else {
 
-                int pid, status;
-                pid = fork();
-                switch(pid){
-                    case -1: // error in creating child
-                        perror("Error: cannot create child.\n");
-                        return -1;
-                    case 0: // child
-                        //READCOMMAND???
-                        getCompleteCommand(argvv, num_commands);
-                        execvp(PATH,*argv_execvp)
-                        break;
-                    default: // parent
-                        if (wait(&status) == -1){
-                            perror("Error in the wait.")
-                        }
-                        ... // end of parent process
-
-                }
-                // Print command REMOVE BEFORE SUBMITTING
-				print_command(argvv, filev, in_background); //???? where should this go
-			}
 		}
 	}
 	
 	return 0;
 }
-
-/*NOTES: DELETE BEFORE SUBMITTING
- * print_command(argvv, filev, in_background)
- * for (int i = 0; i < num commands; i++){
-        for (int j = 0; argvv[i][j] != NULL; j++){
-            printf(‘‘%s\n’’, argvv[i][j]);
-        }
-    }
-    printf(‘‘Redir IN: %s\n’’, filev[0]);
-    printf(‘‘Redir OUT: %s\n’’, filev[1]);
-    printf(‘‘Redir ERR: %s\n’’, filev[2]);
-    if (in background == 0)
-    printf(‘‘No Bg\n’’); else
-    printf(‘‘Bg\n’’);
- *
- *
- *
- * */

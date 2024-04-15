@@ -27,19 +27,57 @@ char *argv_execvp[8];
 
 void siginthandler(int param)
 {
-	printf("****  Exiting MSH **** \n");
-	//signal(SIGINT, siginthandler); ??????
-	exit(0);
+    printf("****  Exiting MSH **** \n");
+    //signal(SIGINT, siginthandler); ??????
+    exit(0);
 }
 
 /* myhistory */
 // Check that the input "myhistory" is correctly spelled in the main
-int myhistory(argvv){
-    // If executed without arguments, show standard output error a list of the last 20 commands <N> <command>
+int myhistory(char *argvv[8])
+{
+    if (argvv[1] == NULL)
+    {
+        // Print the last 20 commands
+        for (int i = 0; i < 20; i++)
+        {
+            if (history[i].argvv != NULL)
+            {
+                print_command(history[i].argvv, history[i].filev, history[i].in_background);
+            }
+        }
+    }
+    else if (argvv[1] != NULL)
+    {
+        int commandIndex = atoi(argvv[1]);
+        if (commandIndex >= 0 && commandIndex < 20) {
+            // Execute the command at index commandIndex in the history
+            pid_t pid = fork();
+            if (pid == 0) {
+                // Child process
+                if (execvp(history[commandIndex].argvv[0], history[commandIndex].argvv) < 0) {
+                    perror("execvp");
+                    exit(EXIT_FAILURE);
+                }
+            } else if (pid < 0) {
+                // Error forking
+                perror("fork");
+            } else {
+                // Parent process
+                int status;
+                waitpid(pid, &status, 0);
+            }
+        } else {
+            write(STDOUT_FILENO, "ERROR: Command not found\n", 24);
+        }
+    }
+}
 
-    // If exectued with an argument number between 0 and 19, print and run the command corresponding to the number
+// If executed without arguments, show standard output error a list of the last 20 commands <N> <command>
 
-    // If number doesn't exist or out of range, print "ERROR: Command not found"
+// If exectued with an argument number between 0 and 19, print and run the command corresponding to the number
+
+// If number doesn't exist or out of range, print "ERROR: Command not found"
 }
 
 /* mycalc */
@@ -79,16 +117,14 @@ int mycalc(char *argvv[8]){
             snprintf(messg,90,"[OK] %d * %d = %d\n",arg1,arg2,ans);
         }
         else if (strcmp(argvv[2], "div") == 0) {
-            int arg1,arg2,ans,rem;
+            int arg1,arg2;
             arg1 = atoi(argvv[1]);
             arg2 = atoi(argvv[3]);
-            ans = arg1/arg2;
-            rem = arg1%arg2;
             if (arg2 == 0){
                 snprintf(messg,90,"[ERROR] Denominator can't be 0\n");
             }
             else {
-            snprintf(messg,90,"[OK] %d / %d = %d; Remainder %d\n",arg1,arg2,ans,rem);
+                snprintf(messg,90,"[OK] %d / %d = %d; Remainder %d\n",arg1,arg2,arg1/arg2,arg1%arg2);
             }
         }
         else {char messg[90];
@@ -106,22 +142,22 @@ int mycalc(char *argvv[8]){
     else{
         write(STDOUT_FILENO,messg,strlen(messg));
     }
-return 0;
+    return 0;
 }
 
 
 struct command
 {
-  // Store the number of commands in argvv
-  int num_commands;
-  // Store the number of arguments of each command
-  int *args;
-  // Store the commands
-  char ***argvv;
-  // Store the I/O redirection
-  char filev[3][64];
-  // Store if the command is executed in background or foreground
-  int in_background;
+    // Store the number of commands in argvv
+    int num_commands;
+    // Store the number of arguments of each command
+    int *args;
+    // Store the commands
+    char ***argvv;
+    // Store the I/O redirection
+    char filev[3][64];
+    // Store if the command is executed in background or foreground
+    int in_background;
 };
 
 int history_size = 20;
@@ -198,13 +234,13 @@ void store_command(char ***argvv, char filev[3][64], int in_background, struct c
  * @return
  */
 void getCompleteCommand(char*** argvv, int num_command) {
-	//reset first
-	for(int j = 0; j < 8; j++)
-		argv_execvp[j] = NULL;
+    //reset first
+    for(int j = 0; j < 8; j++)
+        argv_execvp[j] = NULL;
 
-	int i = 0;
-	for ( i = 0; argvv[num_command][i] != NULL; i++)
-		argv_execvp[i] = argvv[num_command][i];
+    int i = 0;
+    for ( i = 0; argvv[num_command][i] != NULL; i++)
+        argv_execvp[i] = argvv[num_command][i];
 }
 
 
@@ -213,78 +249,81 @@ void getCompleteCommand(char*** argvv, int num_command) {
  */
 int main(int argc, char* argv[])
 {
-	/**** Do not delete this code.****/
-	int end = 0; 
-	int executed_cmd_lines = -1;
-	char *cmd_line = NULL; // command line is default to no command
-	char *cmd_lines[10]; //
+    /**** Do not delete this code.****/
+    int end = 0;
+    int executed_cmd_lines = -1;
+    char *cmd_line = NULL; // command line is default to no command
+    char *cmd_lines[10]; //
 
-	if (!isatty(STDIN_FILENO)) {
-		cmd_line = (char*)malloc(100);
-		while (scanf(" %[^\n]", cmd_line) != EOF){ // while not CTRL-C (EOF)
-			if(strlen(cmd_line) <= 0) // if no command is entered
+    if (!isatty(STDIN_FILENO)) {
+        cmd_line = (char*)malloc(100);
+        while (scanf(" %[^\n]", cmd_line) != EOF){ // while not CTRL-C (EOF)
+            if(strlen(cmd_line) <= 0) // if no command is entered
                 return 0;
-			cmd_lines[end] = (char*)malloc(strlen(cmd_line)+1); //
-			strcpy(cmd_lines[end], cmd_line);
-			end++;
-			fflush(stdin);
-			fflush(stdout);
-		}
-	}
-
-	/*********************************/
-
-	char ***argvv = NULL;
-	int num_commands;
-
-	history = (struct command*) malloc(history_size *sizeof(struct command));
-	int run_history = 0;
-
-	while (1) 
-	{
-		int status = 0;
-		int command_counter = 0;
-		int in_background = 0;
-		signal(SIGINT, siginthandler);
-
-		if (run_history)
-    {
-        run_history=0;
-    }
-    else{
-        // Prompt 
-        write(STDERR_FILENO, "MSH>>", strlen("MSH>>"));
-
-        // Get command
-        //********** DO NOT MODIFY THIS PART. IT DISTINGUISH BETWEEN NORMAL/CORRECTION MODE***************
-        executed_cmd_lines++;
-        if( end != 0 && executed_cmd_lines < end) {
-            command_counter = read_command_correction(&argvv, filev, &in_background, cmd_lines[executed_cmd_lines]);
+            cmd_lines[end] = (char*)malloc(strlen(cmd_line)+1); //
+            strcpy(cmd_lines[end], cmd_line);
+            end++;
+            fflush(stdin);
+            fflush(stdout);
         }
-        else if( end != 0 && executed_cmd_lines == end)
-            return 0;
-        else
-            command_counter = read_command(&argvv, filev, &in_background); //NORMAL MODE
     }
-		//************************************************************************************************
+
+    /*********************************/
+
+    char ***argvv = NULL;
+    int num_commands;
+
+    history = (struct command*) malloc(history_size *sizeof(struct command));
+    int run_history = 0;
+
+    while (1)
+    {
+        int status = 0;
+        int command_counter = 0;
+        int in_background = 0;
+        signal(SIGINT, siginthandler);
+
+        if (run_history)
+        {
+            run_history=0;
+        }
+        else{
+            // Prompt
+            write(STDERR_FILENO, "MSH>>", strlen("MSH>>"));
+
+            // Get command
+            //********** DO NOT MODIFY THIS PART. IT DISTINGUISH BETWEEN NORMAL/CORRECTION MODE***************
+            executed_cmd_lines++;
+            if( end != 0 && executed_cmd_lines < end) {
+                command_counter = read_command_correction(&argvv, filev, &in_background, cmd_lines[executed_cmd_lines]);
+            }
+            else if( end != 0 && executed_cmd_lines == end)
+                return 0;
+            else
+                command_counter = read_command(&argvv, filev, &in_background); //NORMAL MODE
+        }
+        //************************************************************************************************
 
 
-		/************************ STUDENTS CODE ********************************/
-	   if (command_counter > 0) {
-			if (command_counter > MAX_COMMANDS){
-				printf("Error: Maximum number of commands is %d \n", MAX_COMMANDS);
-			}
-
-            for (int i = 0; i < command_counter; i++) {
-               getCompleteCommand(argvv, i);
+        /************************ STUDENTS CODE ********************************/
+        if (command_counter > 0) {
+            if (command_counter > MAX_COMMANDS){
+                printf("Error: Maximum number of commands is %d \n", MAX_COMMANDS);
             }
 
-           if (strcmp(argv_execvp[0], "mycalc") == 0) {
-               mycalc(argv_execvp);
-           }
+            for (int i = 0; i < command_counter; i++) {
+                getCompleteCommand(argvv, i);
+            }
+            store_command(argvv,filev,in_background,&history[tail]);
+            if (strcmp(argv_execvp[0], "mycalc") == 0) {
+                mycalc(argv_execvp);
+            }
+            else if (strcmp(argv_execvp[0],"myhistory") == 0){
+                myhistory(argv_execvp);
+            }
 
-		}
-	}
-	
-	return 0;
+        }
+    }
+
+    return 0;
 }

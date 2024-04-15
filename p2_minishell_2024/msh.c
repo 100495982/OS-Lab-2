@@ -76,7 +76,7 @@ int mycalc(char *argvv[8]){
             arg1 = atoi(argvv[1]);
             arg2 = atoi(argvv[3]);
             ans = arg1 * arg2;
-            snprintf(messg,90,"[OK] %d %% %d = %d\n",arg1,arg2,ans);
+            snprintf(messg,90,"[OK] %d * %d = %d\n",arg1,arg2,ans);
         }
         else if (strcmp(argvv[2], "div") == 0) {
             int arg1,arg2;
@@ -85,7 +85,9 @@ int mycalc(char *argvv[8]){
             if (arg2 == 0){
                 snprintf(messg,90,"[ERROR] Denominator can't be 0\n");
             }
+            else {
             snprintf(messg,90,"[OK] %d / %d = %d; Remainder %d\n",arg1,arg2,arg1/arg2,arg1%arg2);
+            }
         }
         else {char messg[90];
             snprintf(messg,90,"[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");

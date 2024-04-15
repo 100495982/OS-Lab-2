@@ -70,27 +70,35 @@ int myhistory(char *argvv_1[8], struct command *history)
     if (argvv_1[1] == NULL)
     {
         // Print the last 20 commands
+        char buffer[1024]; // Buffer to store the output
+        int buffer_length = 0; // Length of the current buffer
+
         for (int i = 0; i < 20; i++)
         {
             if (history[i].argvv != NULL)
             {
-                printf("%d ",i);
-
+                buffer_length += sprintf(buffer + buffer_length, "%d ",i);
                 for (int q = 0; q < history[i].num_commands; q++) {
                     getCompleteCommand(history[i].argvv, q);
                 }
                 int array_length = sizeof(argv_execvp)/sizeof(argv_execvp[0]);
-                int i = 0;
+                int b = 0;
 
-                while (i<array_length && argv_execvp[i] != NULL) {
-                    printf("%s ",argv_execvp[i]);
-                    i++;
+                while (b<array_length && argv_execvp[b] != NULL) {
+                    buffer_length += sprintf(buffer + buffer_length, "%s ", argv_execvp[b]);
+                    b++;
                 }
 
-                printf("\n");
+                buffer_length += sprintf(buffer + buffer_length, "\n");
             }
         }
+
+// Print the buffer to the standard error output
+        write(STDERR_FILENO, buffer, buffer_length);
+
     }
+
+
     else if (argvv_1[1] != NULL)
     {
         int commandIndex = atoi(argvv_1[1]);
@@ -331,7 +339,9 @@ int main(int argc, char* argv[])
             for (int i = 0; i < command_counter; i++) {
                 getCompleteCommand(argvv, i);
             }
-
+            if (strcmp(argv_execvp[0],"myhistory") == 0){
+                run_history = 1;
+            }
 
             if (strcmp(argv_execvp[0], "mycalc") == 0) {
                 mycalc(argv_execvp);
@@ -339,9 +349,17 @@ int main(int argc, char* argv[])
             else if (strcmp(argv_execvp[0],"myhistory") == 0){
                 myhistory(argv_execvp,history);
             }
-
-            store_command(argvv,filev,in_background,&history[tail]);
-            tail = (tail+1)%history_size;
+            if (run_history == 0){
+                if (n_elem >= 2){
+                    free_command(&history[tail]);
+                    store_command(argvv,filev,in_background,&history[tail]);
+                }
+                else{
+                    store_command(argvv,filev,in_background,&history[tail]);
+                }
+                tail = (tail+1)%history_size;
+                n_elem++;
+            }
         }
     }
 

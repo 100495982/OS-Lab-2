@@ -3,7 +3,7 @@
 //  MSH main file
 // Write your msh source code here
 
-//#include "parser.h" ??
+//#include "parser.h"
 #include <stddef.h>			/* NULL */
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -32,30 +32,77 @@ void siginthandler(int param)
     exit(0);
 }
 
+/**
+ * Get the command with its parameters for execvp
+ * Execute this instruction before run an execvp to obtain the complete command
+ * @param argvv
+ * @param num_command
+ * @return
+ */
+void getCompleteCommand(char*** argvv, int num_command) {
+    //reset first
+    for(int j = 0; j < 8; j++)
+        argv_execvp[j] = NULL;
+
+    int i = 0;
+    for ( i = 0; argvv[num_command][i] != NULL; i++)
+        argv_execvp[i] = argvv[num_command][i];
+}
+
+struct command
+{
+    // Store the number of commands in argvv
+    int num_commands;
+    // Store the number of arguments of each command
+    int *args;
+    // Store the commands
+    char ***argvv;
+    // Store the I/O redirection
+    char filev[3][64];
+    // Store if the command is executed in background or foreground
+    int in_background;
+};
+
 /* myhistory */
 // Check that the input "myhistory" is correctly spelled in the main
-int myhistory(char *argvv[8])
+int myhistory(char *argvv_1[8], struct command *history)
 {
-    if (argvv[1] == NULL)
+    if (argvv_1[1] == NULL)
     {
         // Print the last 20 commands
         for (int i = 0; i < 20; i++)
         {
             if (history[i].argvv != NULL)
             {
-                print_command(history[i].argvv, history[i].filev, history[i].in_background);
+                printf("%d ",i);
+
+                for (int q = 0; q < history[i].num_commands; q++) {
+                    getCompleteCommand(history[i].argvv, q);
+                }
+                int array_length = sizeof(argv_execvp)/sizeof(argv_execvp[0]);
+                int i = 0;
+
+                while (i<array_length && argv_execvp[i] != NULL) {
+                    printf("%s ",argv_execvp[i]);
+                    i++;
+                }
+
+                printf("\n");
             }
         }
     }
-    else if (argvv[1] != NULL)
+    else if (argvv_1[1] != NULL)
     {
-        int commandIndex = atoi(argvv[1]);
+        int commandIndex = atoi(argvv_1[1]);
         if (commandIndex >= 0 && commandIndex < 20) {
             // Execute the command at index commandIndex in the history
             pid_t pid = fork();
             if (pid == 0) {
                 // Child process
-                if (execvp(history[commandIndex].argvv[0], history[commandIndex].argvv) < 0) {
+                for (int i = 0; i < history[commandIndex].num_commands; i++) {
+                    getCompleteCommand(history[commandIndex].argvv, i);
+                }
+                if (execvp(argv_execvp[0], argv_execvp) < 0) {
                     perror("execvp");
                     exit(EXIT_FAILURE);
                 }
@@ -71,6 +118,7 @@ int myhistory(char *argvv[8])
             write(STDOUT_FILENO, "ERROR: Command not found\n", 24);
         }
     }
+    return 0;
 }
 
 // If executed without arguments, show standard output error a list of the last 20 commands <N> <command>
@@ -78,7 +126,7 @@ int myhistory(char *argvv[8])
 // If exectued with an argument number between 0 and 19, print and run the command corresponding to the number
 
 // If number doesn't exist or out of range, print "ERROR: Command not found"
-}
+
 
 /* mycalc */
 int mycalc(char *argvv[8]){
@@ -146,19 +194,7 @@ int mycalc(char *argvv[8]){
 }
 
 
-struct command
-{
-    // Store the number of commands in argvv
-    int num_commands;
-    // Store the number of arguments of each command
-    int *args;
-    // Store the commands
-    char ***argvv;
-    // Store the I/O redirection
-    char filev[3][64];
-    // Store if the command is executed in background or foreground
-    int in_background;
-};
+
 
 int history_size = 20;
 struct command * history;
@@ -224,25 +260,6 @@ void store_command(char ***argvv, char filev[3][64], int in_background, struct c
         }
     }
 }
-
-
-/**
- * Get the command with its parameters for execvp
- * Execute this instruction before run an execvp to obtain the complete command
- * @param argvv
- * @param num_command
- * @return
- */
-void getCompleteCommand(char*** argvv, int num_command) {
-    //reset first
-    for(int j = 0; j < 8; j++)
-        argv_execvp[j] = NULL;
-
-    int i = 0;
-    for ( i = 0; argvv[num_command][i] != NULL; i++)
-        argv_execvp[i] = argvv[num_command][i];
-}
-
 
 /**
  * Main shell  Loop
@@ -314,15 +331,17 @@ int main(int argc, char* argv[])
             for (int i = 0; i < command_counter; i++) {
                 getCompleteCommand(argvv, i);
             }
-            store_command(argvv,filev,in_background,&history[tail]);
+
+
             if (strcmp(argv_execvp[0], "mycalc") == 0) {
                 mycalc(argv_execvp);
             }
             else if (strcmp(argv_execvp[0],"myhistory") == 0){
-                myhistory(argv_execvp);
+                myhistory(argv_execvp,history);
             }
 
-
+            store_command(argvv,filev,in_background,&history[tail]);
+            tail = (tail+1)%history_size;
         }
     }
 

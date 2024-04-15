@@ -4,7 +4,7 @@
 // Write your msh source code here
 
 //#include "parser.h"
-#include <stddef.h>  		  /* NULL */
+#include <stddef.h>   		 /* NULL */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -136,6 +136,7 @@ int myhistory(char *argvv_1[8], struct command *history)
 /* mycalc */
 int mycalc(char *argvv[8]){
     char messg[90];
+    int buffer_length=0;
     if (argvv[1] && argvv[2] && argvv[3]) {
         if (strcmp(argvv[2], "add") == 0) {
 
@@ -157,9 +158,9 @@ int mycalc(char *argvv[8]){
             sprintf(buf,"%d",accum);
             int accc = setenv("Acc",buf,1);
             if (accc == -1) {
-                snprintf(messg,90,"[ERROR]Error setting an environment variable\n");
+                buffer_length = sprintf(messg,"[ERROR]Error setting an environment variable\n");
             }
-            snprintf(messg,90,"[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("Acc"));
+            buffer_length =sprintf(messg,"[OK] %d + %d = %d; Acc %s\n", arg1, arg2, ans, getenv("Acc"));
 
         }
         else if (strcmp(argvv[2], "mul") == 0) {
@@ -167,33 +168,32 @@ int mycalc(char *argvv[8]){
             arg1 = atoi(argvv[1]);
             arg2 = atoi(argvv[3]);
             ans = arg1 * arg2;
-            snprintf(messg,90,"[OK] %d * %d = %d\n",arg1,arg2,ans);
+            buffer_length = sprintf(messg,"[OK] %d * %d = %d\n",arg1,arg2,ans);
         }
         else if (strcmp(argvv[2], "div") == 0) {
             int arg1,arg2;
             arg1 = atoi(argvv[1]);
             arg2 = atoi(argvv[3]);
             if (arg2 == 0){
-                snprintf(messg,90,"[ERROR] Denominator can't be 0\n");
+                buffer_length = sprintf(messg,"[ERROR] Denominator can't be 0\n");
             }
             else {
-                snprintf(messg,90,"[OK] %d / %d = %d; Remainder %d\n",arg1,arg2,arg1/arg2,arg1%arg2);
+                buffer_length = sprintf(messg,"[OK] %d / %d = %d; Remainder %d\n",arg1,arg2,arg1/arg2,arg1%arg2);
             }
         }
-        else {char messg[90];
-            snprintf(messg,90,"[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
+        else {
+            buffer_length = sprintf(messg,"[ERROR] The structure of the command is mycalc <operand_1> <add/mul/div> <operand_2>\n");
         }
     }
     else{
-        char messg[90];
-        snprintf(messg,90,"[ERROR] The structure of the command is mycalc <operand 1> <add/mul/div> <operand 2>\n");
+        buffer_length= sprintf(messg,"[ERROR] The structure of the command is mycalc <operand_1> <add/mul/div> <operand_2>\n");
 
     }
     if (messg[1] == 'O')
-    {write(STDERR_FILENO,messg,strlen(messg));
+    {write(STDERR_FILENO,messg,buffer_length);
     }
     else{
-        write(STDOUT_FILENO,messg,strlen(messg));
+        write(STDOUT_FILENO,messg,buffer_length);
     }
     return 0;
 }
@@ -462,7 +462,7 @@ int main(int argc, char* argv[])
                         else{
                             if (i == command_counter - 1)
                             {
-                                printf("PID: %d\n",pid);
+                                printf("[%d]\n",pid);
                             }
                         }
                     }
@@ -470,7 +470,7 @@ int main(int argc, char* argv[])
             }
         }
         if (run_history == 0){
-            if (n_elem >= 2){
+            if (n_elem >= history_size){
                 free_command(&history[tail]);
                 store_command(argvv,filev,in_background,&history[tail]);
             }
@@ -485,10 +485,6 @@ int main(int argc, char* argv[])
 
     return 0;
 }
-
-
-
-
 
 
 

@@ -4,7 +4,7 @@
 // Write your msh source code here
 
 //#include "parser.h"
-#include <stddef.h>   		 /* NULL */
+#include <stddef.h>  		  /* NULL */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -110,11 +110,8 @@ int myhistory(char *argvv_1[8], struct command *history)
                 for (int i = 0; i < history[commandIndex].num_commands; i++) {
                     getCompleteCommand(history[commandIndex].argvv, i);
                 }
-                if (execvp(argv_execvp[0], argv_execvp) < 0) {
-                    perror("execvp");
-                    exit(EXIT_FAILURE);
-                }
-            } else if (pid < 0) {
+                execvp(argv_execvp[0], argv_execvp);
+            }else if (pid < 0) {
                 // Error forking
                 perror("fork");
             } else {
@@ -488,6 +485,9 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
+
+
 
 
 

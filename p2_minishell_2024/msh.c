@@ -79,14 +79,16 @@ int mycalc(char *argvv[8]){
             snprintf(messg,90,"[OK] %d * %d = %d\n",arg1,arg2,ans);
         }
         else if (strcmp(argvv[2], "div") == 0) {
-            int arg1,arg2;
+            int arg1,arg2,ans,rem;
             arg1 = atoi(argvv[1]);
             arg2 = atoi(argvv[3]);
+            ans = arg1/arg2;
+            rem = arg1%arg2;
             if (arg2 == 0){
                 snprintf(messg,90,"[ERROR] Denominator can't be 0\n");
             }
             else {
-            snprintf(messg,90,"[OK] %d / %d = %d; Remainder %d\n",arg1,arg2,arg1/arg2,arg1%arg2);
+            snprintf(messg,90,"[OK] %d / %d = %d; Remainder %d\n",arg1,arg2,ans,rem);
             }
         }
         else {char messg[90];

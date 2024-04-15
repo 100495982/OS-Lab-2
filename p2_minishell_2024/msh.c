@@ -4,7 +4,7 @@
 // Write your msh source code here
 
 //#include "parser.h"
-#include <stddef.h>			/* NULL */
+#include <stddef.h>   		 /* NULL */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -349,19 +349,146 @@ int main(int argc, char* argv[])
             else if (strcmp(argv_execvp[0],"myhistory") == 0){
                 myhistory(argv_execvp,history);
             }
-            if (run_history == 0){
-                if (n_elem >= 2){
-                    free_command(&history[tail]);
-                    store_command(argvv,filev,in_background,&history[tail]);
+            else{
+                pid_t pid;
+                int fd,fd2,fd3;
+                int fdp[command_counter-1][2];
+                for (int i = 0; i < command_counter-1; i++) {
+                    if (pipe(fdp[i])== -1) {
+                        perror("Pipe cannot be created");
+                    }
                 }
-                else{
-                    store_command(argvv,filev,in_background,&history[tail]);
+                for (int i = 0; i<command_counter; i++)
+                {
+                    pid=fork();
+                    if (pid == -1){
+                        perror("Error creating child");
+                        return (-1);
+                    }
+                    else if (pid==0){
+                        getCompleteCommand(argvv, i);
+                        if (i==0)
+                        {
+                            if (strcmp(filev[0],"0") != 0)
+                            {
+                                fd = open(filev[0],O_RDONLY);
+                                if (fd == -1)
+                                {
+                                    perror("Error opening file");
+                                    return (-1);
+                                }
+                                dup2(fd,STDIN_FILENO);
+                                close(fd);
+                            }
+                            if (command_counter == 1)
+                            {
+                                if (strcmp(filev[1],"0") != 0)
+                                {
+                                    fd2 = open(filev[1],O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                                    if (fd2 == -1)
+                                    {
+                                        perror("Error opening file");
+                                        return (-1);
+                                    }
+                                    dup2(fd2,STDOUT_FILENO);
+                                    close(fd2);
+                                }
+                                if (strcmp(filev[2],"0") != 0)
+                                {
+                                    fd3 = open(filev[2],O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                                    if (fd3 == -1)
+                                    {
+                                        perror("Error opening file");
+                                        return (-1);
+                                    }
+                                    dup2(fd3,STDOUT_FILENO);
+                                    close(fd3);
+                                }
+                            }
+                            else{
+                                dup2(fdp[0][1],STDOUT_FILENO);
+                            }
+
+
+                        }
+                        else if (i<command_counter - 1){
+                            dup2(fdp[i-1][0],STDIN_FILENO);
+                            dup2(fdp[i][1],STDOUT_FILENO);
+                        }
+                        else{
+                            dup2(fdp[i-1][0],STDIN_FILENO);
+                            if (strcmp(filev[1],"0") != 0)
+                            {
+                                fd2 = open(filev[1],O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                                if (fd2 == -1)
+                                {
+                                    perror("Error opening file");
+                                    return (-1);
+                                }
+                                dup2(fd2,STDOUT_FILENO);
+                                close(fd2);
+                            }
+                            if (strcmp(filev[2],"0") != 0)
+                            {
+                                fd3 = open(filev[2],O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                                if (fd3 == -1)
+                                {
+                                    perror("Error opening file");
+                                    return (-1);
+                                }
+                                dup2(fd3,STDOUT_FILENO);
+                                close(fd3);
+                            }
+
+
+                        }
+                        for (int i = 0; i < command_counter-1; i++) {
+                            close(fdp[i][0]);
+                            close(fdp[i][1]);
+                        }
+                        execvp(argv_execvp[0],argv_execvp);
+                    }
+                    else{
+                        if (i==0 && command_counter > 1)
+                        {
+                            close(fdp[0][1]);
+                        }
+                        if (i>0)
+                        {
+                            close(fdp[i-1][0]);
+                            close(fdp[i-1][1]);
+                        }
+                        if (in_background == 0)
+                        {
+                            waitpid(pid,&status,0);
+                        }
+                        else{
+                            if (i == command_counter - 1)
+                            {
+                                printf("PID: %d\n",pid);
+                            }
+                        }
+                    }
                 }
-                tail = (tail+1)%history_size;
-                n_elem++;
             }
+        }
+        if (run_history == 0){
+            if (n_elem >= 2){
+                free_command(&history[tail]);
+                store_command(argvv,filev,in_background,&history[tail]);
+            }
+            else{
+                store_command(argvv,filev,in_background,&history[tail]);
+            }
+            tail = (tail+1)%history_size;
+            n_elem++;
         }
     }
 
+
     return 0;
 }
+
+
+
+

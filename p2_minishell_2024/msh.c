@@ -226,13 +226,12 @@ int myhistory(char *argvv_1[8], struct command *history)
             // Execute the command at index commandIndex in the history
 
 
-            executeCommands(history[commandIndex].command_counter, history[commandIndex].argvv, history[commandIndex].filev,history[commandIndex].in_background);
+            executeCommands(1, history[commandIndex].argvv, history[commandIndex].filev,history[commandIndex].in_background);
         }
     } else {
         write(STDOUT_FILENO, "ERROR: Command not found\n", 24);
     }
-}
-return 0;
+    return 0;
 }
 
 // If executed without arguments, show standard output error a list of the last 20 commands <N> <command>

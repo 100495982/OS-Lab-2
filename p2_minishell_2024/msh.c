@@ -63,6 +63,126 @@ struct command
     int in_background;
 };
 
+void executeCommands(int command_counter, char ***argvv, char filev[3][64],int in_background) {
+    pid_t pid;
+    int status=0;
+    int fd,fd2,fd3;
+    int fdp[command_counter-1][2];
+    for (int i = 0; i < command_counter-1; i++) {
+        if (pipe(fdp[i])== -1) {
+            perror("Pipe cannot be created");
+        }
+    }
+    for (int i = 0; i<command_counter; i++)
+    {
+        pid=fork();
+        if (pid == -1){
+            perror("Error creating child");
+            return;
+        }
+        else if (pid==0){
+            getCompleteCommand(argvv, i);
+            if (i==0)
+            {
+                if (strcmp(filev[0],"0") != 0)
+                {
+                    fd = open(filev[0],O_RDONLY);
+                    if (fd == -1)
+                    {
+                        perror("Error opening file");
+                        return;
+                    }
+                    dup2(fd,STDIN_FILENO);
+                    close(fd);
+                }
+                if (command_counter == 1)
+                {
+                    if (strcmp(filev[1],"0") != 0)
+                    {
+                        fd2 = open(filev[1],O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                        if (fd2 == -1)
+                        {
+                            perror("Error opening file");
+                            return;
+                        }
+                        dup2(fd2,STDOUT_FILENO);
+                        close(fd2);
+                    }
+                    if (strcmp(filev[2],"0") != 0)
+                    {
+                        fd3 = open(filev[2],O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                        if (fd3 == -1)
+                        {
+                            perror("Error opening file");
+                            return;
+                        }
+                        dup2(fd3,STDOUT_FILENO);
+                        close(fd3);
+                    }
+                }
+                else{
+                    dup2(fdp[0][1],STDOUT_FILENO);
+                }
+            }
+            else if (i<command_counter - 1){
+                dup2(fdp[i-1][0],STDIN_FILENO);
+                dup2(fdp[i][1],STDOUT_FILENO);
+            }
+            else{
+                dup2(fdp[i-1][0],STDIN_FILENO);
+                if (strcmp(filev[1],"0") != 0)
+                {
+                    fd2 = open(filev[1],O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                    if (fd2 == -1)
+                    {
+                        perror("Error opening file");
+                        return;
+                    }
+                    dup2(fd2,STDOUT_FILENO);
+                    close(fd2);
+                }
+                if (strcmp(filev[2],"0") != 0)
+                {
+                    fd3 = open(filev[2],O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                    if (fd3 == -1)
+                    {
+                        perror("Error opening file");
+                        return;
+                    }
+                    dup2(fd3,STDOUT_FILENO);
+                    close(fd3);
+                }
+            }
+            for (int i = 0; i < command_counter-1; i++) {
+                close(fdp[i][0]);
+                close(fdp[i][1]);
+            }
+            execvp(argv_execvp[0],argv_execvp);
+        }
+        else{
+            if (i==0 && command_counter > 1)
+            {
+                close(fdp[0][1]);
+            }
+            if (i>0)
+            {
+                close(fdp[i-1][0]);
+                close(fdp[i-1][1]);
+            }
+            if (in_background == 0)
+            {
+                waitpid(pid,&status,0);
+            }
+            else{
+                if (i == command_counter - 1)
+                {
+                    printf("PID: %d\n",pid);
+                }
+            }
+        }
+    }
+}
+
 /* myhistory */
 // Check that the input "myhistory" is correctly spelled in the main
 int myhistory(char *argvv_1[8], struct command *history)
@@ -104,26 +224,15 @@ int myhistory(char *argvv_1[8], struct command *history)
         int commandIndex = atoi(argvv_1[1]);
         if (commandIndex >= 0 && commandIndex < 20) {
             // Execute the command at index commandIndex in the history
-            pid_t pid = fork();
-            if (pid == 0) {
-                // Child process
-                for (int i = 0; i < history[commandIndex].num_commands; i++) {
-                    getCompleteCommand(history[commandIndex].argvv, i);
-                }
-                execvp(argv_execvp[0], argv_execvp);
-            }else if (pid < 0) {
-                // Error forking
-                perror("fork");
-            } else {
-                // Parent process
-                int status;
-                waitpid(pid, &status, 0);
-            }
-        } else {
-            write(STDOUT_FILENO, "ERROR: Command not found\n", 24);
+
+
+            executeCommands(history[commandIndex].command_counter, history[commandIndex].argvv, history[commandIndex].filev,history[commandIndex].in_background);
         }
+    } else {
+        write(STDOUT_FILENO, "ERROR: Command not found\n", 24);
     }
-    return 0;
+}
+return 0;
 }
 
 // If executed without arguments, show standard output error a list of the last 20 commands <N> <command>
@@ -344,147 +453,27 @@ int main(int argc, char* argv[])
                 mycalc(argv_execvp);
             }
             else if (strcmp(argv_execvp[0],"myhistory") == 0){
+                run_history = 1;
                 myhistory(argv_execvp,history);
             }
             else{
-                pid_t pid;
-                int fd,fd2,fd3;
-                int fdp[command_counter-1][2];
-                for (int i = 0; i < command_counter-1; i++) {
-                    if (pipe(fdp[i])== -1) {
-                        perror("Pipe cannot be created");
-                    }
+                executeCommands(command_counter, argvv, filev,in_background);
+            }
+
+            if (run_history == 0){
+                if (n_elem >= history_size){
+                    free_command(&history[tail]);
+                    store_command(argvv,filev,in_background,&history[tail]);
                 }
-                for (int i = 0; i<command_counter; i++)
-                {
-                    pid=fork();
-                    if (pid == -1){
-                        perror("Error creating child");
-                        return (-1);
-                    }
-                    else if (pid==0){
-                        getCompleteCommand(argvv, i);
-                        if (i==0)
-                        {
-                            if (strcmp(filev[0],"0") != 0)
-                            {
-                                fd = open(filev[0],O_RDONLY);
-                                if (fd == -1)
-                                {
-                                    perror("Error opening file");
-                                    return (-1);
-                                }
-                                dup2(fd,STDIN_FILENO);
-                                close(fd);
-                            }
-                            if (command_counter == 1)
-                            {
-                                if (strcmp(filev[1],"0") != 0)
-                                {
-                                    fd2 = open(filev[1],O_WRONLY | O_CREAT | O_TRUNC, 0664);
-                                    if (fd2 == -1)
-                                    {
-                                        perror("Error opening file");
-                                        return (-1);
-                                    }
-                                    dup2(fd2,STDOUT_FILENO);
-                                    close(fd2);
-                                }
-                                if (strcmp(filev[2],"0") != 0)
-                                {
-                                    fd3 = open(filev[2],O_WRONLY | O_CREAT | O_TRUNC, 0664);
-                                    if (fd3 == -1)
-                                    {
-                                        perror("Error opening file");
-                                        return (-1);
-                                    }
-                                    dup2(fd3,STDOUT_FILENO);
-                                    close(fd3);
-                                }
-                            }
-                            else{
-                                dup2(fdp[0][1],STDOUT_FILENO);
-                            }
-
-
-                        }
-                        else if (i<command_counter - 1){
-                            dup2(fdp[i-1][0],STDIN_FILENO);
-                            dup2(fdp[i][1],STDOUT_FILENO);
-                        }
-                        else{
-                            dup2(fdp[i-1][0],STDIN_FILENO);
-                            if (strcmp(filev[1],"0") != 0)
-                            {
-                                fd2 = open(filev[1],O_WRONLY | O_CREAT | O_TRUNC, 0664);
-                                if (fd2 == -1)
-                                {
-                                    perror("Error opening file");
-                                    return (-1);
-                                }
-                                dup2(fd2,STDOUT_FILENO);
-                                close(fd2);
-                            }
-                            if (strcmp(filev[2],"0") != 0)
-                            {
-                                fd3 = open(filev[2],O_WRONLY | O_CREAT | O_TRUNC, 0664);
-                                if (fd3 == -1)
-                                {
-                                    perror("Error opening file");
-                                    return (-1);
-                                }
-                                dup2(fd3,STDOUT_FILENO);
-                                close(fd3);
-                            }
-
-
-                        }
-                        for (int i = 0; i < command_counter-1; i++) {
-                            close(fdp[i][0]);
-                            close(fdp[i][1]);
-                        }
-                        execvp(argv_execvp[0],argv_execvp);
-                    }
-                    else{
-                        if (i==0 && command_counter > 1)
-                        {
-                            close(fdp[0][1]);
-                        }
-                        if (i>0)
-                        {
-                            close(fdp[i-1][0]);
-                            close(fdp[i-1][1]);
-                        }
-                        if (in_background == 0)
-                        {
-                            waitpid(pid,&status,0);
-                        }
-                        else{
-                            if (i == command_counter - 1)
-                            {
-                                printf("[%d]\n",pid);
-                            }
-                        }
-                    }
+                else{
+                    store_command(argvv,filev,in_background,&history[tail]);
                 }
+                tail = (tail+1)%history_size;
+                n_elem++;
             }
-        }
-        if (run_history == 0){
-            if (n_elem >= history_size){
-                free_command(&history[tail]);
-                store_command(argvv,filev,in_background,&history[tail]);
-            }
-            else{
-                store_command(argvv,filev,in_background,&history[tail]);
-            }
-            tail = (tail+1)%history_size;
-            n_elem++;
         }
     }
 
 
     return 0;
 }
-
-
-
